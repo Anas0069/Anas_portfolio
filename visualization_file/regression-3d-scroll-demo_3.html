@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Regression → 3D Scatter | Scroll Prototype</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 400vh;
+    background: #0a0a0c;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    overflow-x: hidden;
+  }
+  #canvas-wrap {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+  }
+  canvas { display: block; }
+
+  .label {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: #e8ecef;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .label .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #4ee0c8;
+    margin-bottom: 8px;
+  }
+  .label h1 {
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  #label-start { top: 12vh; opacity: 1; }
+  #label-mid   { top: 12vh; opacity: 0; }
+  #label-end   { top: 12vh; opacity: 0; }
+
+  #progress-track {
+    position: fixed;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 220px;
+    background: rgba(255,255,255,0.08);
+  }
+  #progress-fill {
+    width: 100%;
+    background: #4ee0c8;
+    height: 0%;
+    transition: height 0.05s linear;
+  }
+  #scroll-hint {
+    position: fixed;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(232,236,239,0.4);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    transition: opacity 0.4s ease;
+  }
+
+  #legend {
+    position: fixed;
+    left: 32px;
+    bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  #legend.visible { opacity: 1; }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(232,236,239,0.55);
+  }
+  .legend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .axis-title {
+    position: fixed;
+    color: rgba(232,236,239,0.5);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .axis-title.visible { opacity: 1; }
+  #axis-x-title {
+    right: 40px;
+    bottom: 46%;
+  }
+  #axis-y-title {
+    left: 50%;
+    top: 8%;
+    transform: translateX(-50%);
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-wrap"></div>
+
+<div class="label" id="label-start">
+  <div class="eyebrow">Fig. 01 — Linear Fit</div>
+  <h1>y = β₀ + β₁x</h1>
+</div>
+<div class="label" id="label-mid">
+  <div class="eyebrow">Fig. 02 — Rotating</div>
+  <h1>Introducing Z</h1>
+</div>
+<div class="label" id="label-end">
+  <div class="eyebrow">Fig. 03 — Full Dimension</div>
+  <h1>y = β₀ + β₁x + β₂z</h1>
+</div>
+
+<div id="progress-track"><div id="progress-fill"></div></div>
+<div id="scroll-hint">scroll to rotate</div>
+<div id="legend"></div>
+<div class="axis-title" id="axis-x-title">Age (0–25) →</div>
+<div class="axis-title" id="axis-y-title">↑ Productivity</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ---------- scene setup ----------
+const wrap = document.getElementById('canvas-wrap');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+camera.position.set(0, 0, 12);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+wrap.appendChild(renderer.domElement);
+
+const rig = new THREE.Group(); // everything rotates via this group
+scene.add(rig);
+
+// ---------- accent colors ----------
+const ACCENT = 0x4ee0c8;
+const GRID = 0x2a2f33;
+const POINT_DIM = 0x6b7478;
+
+// ---------- data generation ----------
+// Deterministic pseudo-random for consistent look
+function rand(seed) {
+  const x = Math.sin(seed * 999) * 10000;
+  return x - Math.floor(x);
+}
+
+const PALETTE = [
+  { name: 'PyTorch',        hex: 0x7c3aed }, // Violet
+  { name: 'Computer Vision', hex: 0x4f46e5 }, // Indigo
+  { name: 'Machine Learning', hex: 0x3b82f6 }, // Blue
+  { name: 'Deep Learning',  hex: 0x22c55e }, // Green
+  { name: 'Python',         hex: 0xeab308 }, // Yellow
+  { name: 'NLP',            hex: 0xf97316 }, // Orange
+  { name: 'RAG & LLM',      hex: 0xef4444 }, // Red
+  { name: 'SQL',            hex: 0xec4899 }, // Pink
+];
+
+const PER_CLUSTER = 550;
+const N = PALETTE.length * PER_CLUSTER;
+
+// Fibonacci sphere distribution: spaces the 8 cluster centers as far apart
+// from each other as possible in 3D (no two clusters share a hemisphere
+// direction), so every color — including pink and red — lands in its own
+// clearly separated region once the scene rotates, rather than bunching
+// along the regression line.
+function fibonacciSphere(i, n, radius) {
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const yNorm = 1 - (i / (n - 1)) * 2; // 1 -> -1
+  const radiusAtY = Math.sqrt(Math.max(0, 1 - yNorm * yNorm));
+  const theta = goldenAngle * i;
+  return {
+    x: Math.cos(theta) * radiusAtY * radius,
+    y: yNorm * radius * 0.6, // compress vertical spread a touch
+    z: Math.sin(theta) * radiusAtY * radius,
+  };
+}
+
+const CLUSTER_RADIUS = 4.6;
+const clusterCenters = PALETTE.map((c, i) => fibonacciSphere(i, PALETTE.length, CLUSTER_RADIUS));
+
+// tighter, denser jitter around each center — reads as a dense point
+// cloud (lots of data) rather than a handful of scattered dots
+function denseJitter(seed, spread) {
+  const a = rand(seed * 2.13) - 0.5;
+  const b = rand(seed * 5.77) - 0.5;
+  return (a + b) * spread; // triangular-ish distribution, denser toward center
+}
+
+const points2D = []; // {x,y}
+const points3D = []; // {x,y,z}
+const pointColors = []; // THREE.Color per point
+const pointCluster = []; // cluster index per point, used for hover/labels later
+
+for (let ci = 0; ci < PALETTE.length; ci++) {
+  const center = clusterCenters[ci];
+  for (let j = 0; j < PER_CLUSTER; j++) {
+    const seed = ci * 977 + j;
+    const jx = denseJitter(seed * 3.1, 0.9);
+    const jy = denseJitter(seed * 7.7, 0.8);
+    const jz = denseJitter(seed * 13.3, 0.9);
+    const x = center.x + jx;
+    const y = center.y + jy;
+    const z = center.z + jz;
+    points2D.push({ x, y, z: 0 });
+    points3D.push({ x, y, z });
+    pointColors.push(new THREE.Color(PALETTE[ci].hex));
+    pointCluster.push(ci);
+  }
+}
+
+// ---------- point cloud (dotted look via sprite circles) ----------
+function makeDotTexture() {
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createRadialGradient(32,32,0,32,32,32);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.4, 'rgba(255,255,255,0.9)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,64,64);
+  return new THREE.CanvasTexture(c);
+}
+const dotTex = makeDotTexture();
+
+const positions = new Float32Array(N * 3);
+const colors = new Float32Array(N * 3);
+for (let i = 0; i < N; i++) {
+  positions[i*3] = points2D[i].x;
+  positions[i*3+1] = points2D[i].y;
+  positions[i*3+2] = points2D[i].z;
+  colors[i*3] = pointColors[i].r;
+  colors[i*3+1] = pointColors[i].g;
+  colors[i*3+2] = pointColors[i].b;
+}
+const geo = new THREE.BufferGeometry();
+geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+const mat = new THREE.PointsMaterial({
+  size: 0.13,
+  map: dotTex,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.85,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending
+});
+const cloud = new THREE.Points(geo, mat);
+rig.add(cloud);
+
+// ---------- regression line (dotted) ----------
+function regressionLinePoints(t) {
+  const p1 = new THREE.Vector3(-6.4, 0.55 * -6.4, 0);
+  const p2 = new THREE.Vector3(6.4, 0.55 * 6.4, 0);
+  return [p1, p2];
+}
+const [lp1, lp2] = regressionLinePoints(0);
+const lineGeo = new THREE.BufferGeometry().setFromPoints(
+  Array.from({length: 40}, (_, i) => {
+    const t = i / 39;
+    return new THREE.Vector3(
+      THREE.MathUtils.lerp(lp1.x, lp2.x, t),
+      THREE.MathUtils.lerp(lp1.y, lp2.y, t),
+      0
+    );
+  })
+);
+const lineMat = new THREE.LineDashedMaterial({
+  color: ACCENT,
+  dashSize: 0.12,
+  gapSize: 0.12,
+  transparent: true,
+  opacity: 0.85
+});
+const regLine = new THREE.Line(lineGeo, lineMat);
+regLine.computeLineDistances();
+rig.add(regLine);
+
+// ---------- axes ----------
+function makeAxis(dir, length, color) {
+  const points = [new THREE.Vector3(0,0,0), dir.clone().multiplyScalar(length)];
+  const g = new THREE.BufferGeometry().setFromPoints(points);
+  const m = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.5 });
+  return new THREE.Line(g, m);
+}
+const axisX = makeAxis(new THREE.Vector3(1,0,0), 7, GRID);
+const axisXneg = makeAxis(new THREE.Vector3(-1,0,0), 7, GRID);
+const axisY = makeAxis(new THREE.Vector3(0,1,0), 4.5, GRID);
+const axisYneg = makeAxis(new THREE.Vector3(0,-1,0), 4.5, GRID);
+rig.add(axisX, axisXneg, axisY, axisYneg);
+
+// z axis fades in as we rotate
+const axisZ = makeAxis(new THREE.Vector3(0,0,1), 7, ACCENT);
+const axisZneg = makeAxis(new THREE.Vector3(0,0,-1), 7, ACCENT);
+axisZ.material.opacity = 0;
+axisZneg.material.opacity = 0;
+rig.add(axisZ, axisZneg);
+
+// faint ground grid (xz plane) that fades in with rotation, sells the 3D depth
+const gridHelper = new THREE.GridHelper(14, 16, GRID, GRID);
+gridHelper.material.transparent = true;
+gridHelper.material.opacity = 0;
+gridHelper.position.y = -3.6;
+rig.add(gridHelper);
+
+// ---------- scroll-driven progress ----------
+let progress = 0; // 0 -> 1
+const scrollHeight = () => document.body.scrollHeight - window.innerHeight;
+
+function updateFromScroll() {
+  const p = window.scrollY / scrollHeight();
+  progress = THREE.MathUtils.clamp(p, 0, 1);
+}
+
+// ---------- easing ----------
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3) / 2;
+}
+
+// ---------- animation loop ----------
+const posAttr = geo.attributes.position;
+const labelStart = document.getElementById('label-start');
+const labelMid = document.getElementById('label-mid');
+const labelEnd = document.getElementById('label-end');
+const progressFill = document.getElementById('progress-fill');
+const scrollHint = document.getElementById('scroll-hint');
+const legend = document.getElementById('legend');
+const axisXTitle = document.getElementById('axis-x-title');
+const axisYTitle = document.getElementById('axis-y-title');
+
+PALETTE.forEach(c => {
+  const row = document.createElement('div');
+  row.className = 'legend-row';
+  const dot = document.createElement('span');
+  dot.className = 'legend-dot';
+  dot.style.background = '#' + c.hex.toString(16).padStart(6, '0');
+  const label = document.createElement('span');
+  label.textContent = c.name;
+  row.appendChild(dot);
+  row.appendChild(label);
+  legend.appendChild(row);
+});
+
+function render() {
+  const e = easeInOutCubic(progress);
+
+  // rotate rig right -> left (negative Y rotation) up to ~55 degrees, revealing depth
+  const maxRotation = -0.95; // radians (~ -54deg)
+  rig.rotation.y = maxRotation * e;
+  rig.rotation.x = 0.12 * e; // slight tilt down for perspective
+
+  // morph points from z=0 to their true z value
+  for (let i = 0; i < N; i++) {
+    const z = THREE.MathUtils.lerp(0, points3D[i].z, e);
+    posAttr.setZ(i, z);
+  }
+  posAttr.needsUpdate = true;
+
+  // fade in z-axis + grid as rotation progresses
+  const zOpacity = THREE.MathUtils.smoothstep(progress, 0.15, 0.7);
+  axisZ.material.opacity = zOpacity * 0.7;
+  axisZneg.material.opacity = zOpacity * 0.7;
+  gridHelper.material.opacity = zOpacity * 0.25;
+
+  // dim the regression line as it becomes less "the whole story"
+  lineMat.opacity = THREE.MathUtils.lerp(0.85, 0.35, e);
+
+  // camera subtle dolly for drama
+  camera.position.z = THREE.MathUtils.lerp(12, 14, e);
+  camera.position.y = THREE.MathUtils.lerp(0, 0.8, e);
+  camera.lookAt(0, 0, 0);
+
+  // labels crossfade
+  labelStart.style.opacity = 1 - THREE.MathUtils.smoothstep(progress, 0.0, 0.18);
+  labelMid.style.opacity =
+    THREE.MathUtils.smoothstep(progress, 0.15, 0.35) *
+    (1 - THREE.MathUtils.smoothstep(progress, 0.65, 0.85));
+  labelEnd.style.opacity = THREE.MathUtils.smoothstep(progress, 0.8, 0.98);
+
+  progressFill.style.height = (progress * 100) + '%';
+  scrollHint.style.opacity = progress > 0.05 ? 0 : 0.6;
+  legend.classList.toggle('visible', progress > 0.3);
+  axisXTitle.classList.toggle('visible', progress < 0.5);
+  axisYTitle.classList.toggle('visible', progress < 0.5);
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(render);
+}
+
+window.addEventListener('scroll', updateFromScroll, { passive: true });
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+updateFromScroll();
+render();
+</script>
+</body>
+</html>
