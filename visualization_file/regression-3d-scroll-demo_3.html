@@ -16,9 +16,46 @@
     top: 0; left: 0;
     width: 100vw; height: 100vh;
     cursor: grab;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.55s ease;
   }
   #canvas-wrap.dragging { cursor: grabbing; }
   canvas { display: block; }
+
+  #launch-touchdesigner {
+    position: fixed;
+    top: 24px;
+    right: 28px;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    color: #4ee0c8;
+    background: rgba(10, 10, 12, 0.76);
+    border: 1px solid rgba(232, 236, 239, 0.2);
+    border-radius: 50%;
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    z-index: 20;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
+  #launch-touchdesigner:hover,
+  #launch-touchdesigner:focus-visible {
+    background: rgba(78, 224, 200, 0.13);
+    border-color: rgba(78, 224, 200, 0.7);
+    outline: none;
+    transform: translateY(-1px);
+  }
+  #launch-touchdesigner svg { width: 18px; height: 18px; }
+  #launch-touchdesigner.active {
+    color: #0a0a0c;
+    background: #4ee0c8;
+    border-color: #4ee0c8;
+  }
+  #launch-touchdesigner:disabled { cursor: wait; opacity: 0.7; }
 
   #reset-view {
     position: fixed;
@@ -64,7 +101,22 @@
     font-weight: 500;
     letter-spacing: -0.01em;
   }
-  #label-start { top: 12vh; opacity: 1; }
+  .greeting {
+    min-height: 1.3em;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  .greeting.is-changing {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  .graph-name {
+    margin-top: 12px;
+    color: rgba(232, 236, 239, 0.5);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  #label-start { top: 50vh; transform: translate(-50%, -50%); opacity: 1; }
   #label-mid   { top: 12vh; opacity: 0; }
   #label-end   { top: 12vh; opacity: 0; }
 
@@ -142,23 +194,156 @@
     top: 8%;
     transform: translateX(-50%);
   }
+
+  #hand-panel {
+    position: fixed;
+    right: 58px;
+    bottom: 40px;
+    width: 190px;
+    padding: 12px 14px;
+    background: rgba(10,10,12,0.78);
+    border: 1px solid rgba(232,236,239,0.14);
+    border-radius: 10px;
+    color: rgba(232,236,239,0.72);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    z-index: 10;
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+
+  #hand-panel.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  #hand-status {
+    color: rgba(232,236,239,0.45);
+    margin-bottom: 9px;
+  }
+
+  #hand-status.active {
+    color: #4ee0c8;
+  }
+
+  #enable-hand {
+    width: 100%;
+    color: #4ee0c8;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  #hand-distance {
+    margin-top: 9px;
+    color: rgba(232,236,239,0.42);
+  }
+
+  #hand-video {
+    position: fixed;
+    right: 58px;
+    bottom: 145px;
+    width: 190px;
+    height: 143px;
+    object-fit: cover;
+    transform: scaleX(-1);
+    border-radius: 10px;
+    border: 1px solid rgba(232,236,239,0.12);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    z-index: 10;
+  }
+
+  #hand-video.visible {
+    opacity: 0.72;
+  }
+
+  #cluster-panel {
+    position: fixed;
+    top: 50%;
+    right: 32px;
+    width: min(480px, 42vw);
+    min-height: min(620px, 70vh);
+    padding: 30px;
+    color: #e8ecef;
+    background: rgba(10, 10, 12, 0.92);
+    border: 1px solid rgba(78, 224, 200, 0.35);
+    border-radius: 16px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(14px);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(112%, -50%);
+    transition: transform 540ms cubic-bezier(0.65, 0, 0.35, 1), opacity 540ms ease;
+    z-index: 30;
+  }
+  #cluster-panel.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(0, -50%);
+  }
+  #cluster-panel-title {
+    padding-right: 38px;
+    color: #4ee0c8;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    line-height: 1.5;
+    text-transform: uppercase;
+  }
+  #cluster-panel-content {
+    margin-top: 32px;
+    color: rgba(232, 236, 239, 0.56);
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  #close-cluster-panel {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(232, 236, 239, 0.2);
+    border-radius: 50%;
+    color: rgba(232, 236, 239, 0.72);
+    background: transparent;
+    cursor: pointer;
+    font: 19px/1 sans-serif;
+  }
+  #close-cluster-panel:hover { border-color: #4ee0c8; color: #4ee0c8; }
+
 </style>
 </head>
 <body>
 
 <div id="canvas-wrap"></div>
 
+<button id="launch-touchdesigner"
+   type="button"
+   aria-label="Enable camera hand controls"
+   aria-pressed="false"
+   title="Enable camera hand controls">
+  <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 7.5h3.4l1.2-2h8.8l1.2 2H21v11H3z"/>
+    <circle cx="12" cy="13" r="3.5"/>
+  </svg>
+</button>
+
 <div class="label" id="label-start">
-  <div class="eyebrow">Fig. 01 — Linear Fit</div>
-  <h1>y = β₀ + β₁x</h1>
+  <div class="eyebrow">Welcome</div>
+  <h1 class="greeting" id="greeting">Hi, I'm Muhammed Anas</h1>
 </div>
 <div class="label" id="label-mid">
-  <div class="eyebrow">Fig. 02 — Rotating</div>
-  <h1>Introducing Z</h1>
+  <div class="eyebrow">Data visualization</div>
+  <h1>Explore me in terms of Machine Leaning</h1>
+  <div class="graph-name">KNN Clusters</div>
 </div>
 <div class="label" id="label-end">
-  <div class="eyebrow">Fig. 03 — Full Dimension</div>
-  <h1>y = β₀ + β₁x + β₂z</h1>
+  <div class="eyebrow">Interactive view</div>
+  <h1>my vectorDB : AnasDB</h1>
 </div>
 
 <div id="progress-track"><div id="progress-fill"></div></div>
@@ -166,7 +351,18 @@
 <div id="legend"></div>
 <div class="axis-title" id="axis-x-title">Age (0–25) →</div>
 <div class="axis-title" id="axis-y-title">↑ Productivity</div>
+<div id="hand-panel">
+  <div id="hand-status">HAND TRACKING: OFF</div>
+  <div id="enable-hand" aria-hidden="true">Use the camera button</div>
+  <div id="hand-distance">Thumb ↔ Ring: —</div>
+</div>
+<video id="hand-video" autoplay playsinline muted></video>
 <button id="reset-view">Reset view</button>
+<aside id="cluster-panel" aria-hidden="true" aria-label="Portfolio section details">
+  <button id="close-cluster-panel" type="button" aria-label="Close section panel">×</button>
+  <div id="cluster-panel-title"></div>
+  <div id="cluster-panel-content">Section details will appear here.</div>
+</aside>
 
 <script type="importmap">
 {
@@ -176,8 +372,131 @@
 }
 </script>
 
+<script src="https://unpkg.com/@mediapipe/tasks-vision@latest/vision_bundle.js"></script>
 <script type="module">
 import * as THREE from 'three';
+
+// ---------- MediaPipe hand tracking: Phase 1 ----------
+const handStatus = document.getElementById('hand-status');
+const enableHandBtn = document.getElementById('enable-hand');
+const handDistanceEl = document.getElementById('hand-distance');
+const handVideo = document.getElementById('hand-video');
+const handPanel = document.getElementById('hand-panel');
+const cameraControl = document.getElementById('launch-touchdesigner');
+
+let handLandmarker = null;
+let handStream = null;
+let handTrackingStarted = false;
+let lastVideoTime = -1;
+let handRotationY = 0;
+let handRotationX = 0;
+
+const HAND_MODEL_URL =
+  "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+
+async function setupHandTracking() {
+  if (handTrackingStarted || cameraControl.disabled) return;
+  cameraControl.disabled = true;
+  enableHandBtn.style.opacity = '0.55';
+  enableHandBtn.textContent = 'Loading MediaPipe...';
+  handStatus.textContent = 'HAND TRACKING: LOADING';
+
+  try {
+    const vision = await window.vision.FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+    );
+
+    handLandmarker = await window.vision.HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: HAND_MODEL_URL
+      },
+      runningMode: "VIDEO",
+      numHands: 1
+    });
+
+    handStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user",
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+
+    handVideo.srcObject = handStream;
+    await handVideo.play();
+
+    handTrackingStarted = true;
+    handVideo.classList.add('visible');
+    handPanel.classList.add('visible');
+    handStatus.textContent = 'HAND TRACKING: ACTIVE';
+    handStatus.classList.add('active');
+    enableHandBtn.textContent = 'Camera active';
+    cameraControl.disabled = false;
+    cameraControl.classList.add('active');
+    cameraControl.setAttribute('aria-pressed', 'true');
+    cameraControl.title = 'Camera hand controls active';
+
+    requestAnimationFrame(trackHand);
+  } catch (error) {
+    console.error('MediaPipe setup failed:', error);
+    handStatus.textContent = 'HAND TRACKING: ERROR';
+    cameraControl.disabled = false;
+    cameraControl.title = 'Camera unavailable — check browser permission';
+    enableHandBtn.style.opacity = '1';
+    enableHandBtn.textContent = 'Camera unavailable';
+    handDistanceEl.textContent = 'Check camera permission / localhost';
+  }
+}
+
+function landmarkDistance(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  const dz = a.z - b.z;
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+function trackHand() {
+  if (!handTrackingStarted || !handLandmarker) return;
+
+  if (handVideo.readyState >= 2 && handVideo.currentTime !== lastVideoTime) {
+    lastVideoTime = handVideo.currentTime;
+
+    const result = handLandmarker.detectForVideo(
+      handVideo,
+      performance.now()
+    );
+
+    if (result.landmarks && result.landmarks.length > 0) {
+      const landmarks = result.landmarks[0];
+
+      // MediaPipe landmark 4 = thumb tip
+      // MediaPipe landmark 16 = ring finger tip
+      const thumbTip = landmarks[4];
+      const ringTip = landmarks[16];
+
+      const rawDistance = landmarkDistance(thumbTip, ringTip);
+      const indexTip = landmarks[8];
+
+      // Drive the browser's 3D visualization directly with live MediaPipe data.
+      handRotationY = (0.5 - indexTip.x) * 1.7;
+      handRotationX = (0.5 - indexTip.y) * 0.85;
+
+      handDistanceEl.textContent =
+        `Thumb ↔ Ring: ${rawDistance.toFixed(3)}`;
+    } else {
+      handRotationY *= 0.92;
+      handRotationX *= 0.92;
+      handDistanceEl.textContent = 'Thumb ↔ Ring: —';
+    }
+  }
+
+  requestAnimationFrame(trackHand);
+}
+
+// Camera access is opt-in: the visitor starts it from the camera control.
+cameraControl.addEventListener('click', setupHandTracking);
+
 
 // ---------- scene setup ----------
 const wrap = document.getElementById('canvas-wrap');
@@ -191,6 +510,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 wrap.appendChild(renderer.domElement);
 
 const rig = new THREE.Group(); // everything rotates via this group
+rig.scale.setScalar(0.85);
 scene.add(rig);
 
 // ---------- accent colors ----------
@@ -206,14 +526,14 @@ function rand(seed) {
 }
 
 const PALETTE = [
-  { name: 'PyTorch',        hex: 0x7c3aed }, // Violet
-  { name: 'Computer Vision', hex: 0x4f46e5 }, // Indigo
-  { name: 'Machine Learning', hex: 0x3b82f6 }, // Blue
-  { name: 'Deep Learning',  hex: 0x22c55e }, // Green
-  { name: 'Python',         hex: 0xeab308 }, // Yellow
-  { name: 'NLP',            hex: 0xf97316 }, // Orange
-  { name: 'RAG & LLM',      hex: 0xef4444 }, // Red
-  { name: 'SQL',            hex: 0xec4899 }, // Pink
+  { name: 'Who I Am (Introduction)', hex: 0x7c3aed }, // Violet
+  { name: 'The Grind (Education)', hex: 0x4f46e5 }, // Indigo
+  { name: "What I've Built (Projects)", hex: 0x3b82f6 }, // Blue
+  { name: 'Brainy Stuff (Research Papers)', hex: 0x22c55e }, // Green
+  { name: 'Been There, Done That (Experience)', hex: 0xeab308 }, // Yellow
+  { name: 'My Toolkit (Technical Skills)', hex: 0xf97316 }, // Orange
+  { name: "Let's Link (Connect)", hex: 0xef4444 }, // Red
+  { name: 'Flex Zone (Extras/Achievements)', hex: 0xec4899 }, // Pink
 ];
 
 const PER_CLUSTER = 550;
@@ -284,31 +604,58 @@ function makeDotTexture() {
 }
 const dotTex = makeDotTexture();
 
-const positions = new Float32Array(N * 3);
-const colors = new Float32Array(N * 3);
-for (let i = 0; i < N; i++) {
-  positions[i*3] = points2D[i].x;
-  positions[i*3+1] = points2D[i].y;
-  positions[i*3+2] = points2D[i].z;
-  colors[i*3] = pointColors[i].r;
-  colors[i*3+1] = pointColors[i].g;
-  colors[i*3+2] = pointColors[i].b;
-}
-const geo = new THREE.BufferGeometry();
-geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+const clusterGroups = [];
+const clusterPositionAttributes = [];
+const clusterMaterials = [];
+const clusterHitTargets = [];
+const hitMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+const hitGeometry = new THREE.SphereGeometry(1.35, 16, 12);
 
-const mat = new THREE.PointsMaterial({
-  size: 0.13,
-  map: dotTex,
-  vertexColors: true,
-  transparent: true,
-  opacity: 0.85,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending
-});
-const cloud = new THREE.Points(geo, mat);
-rig.add(cloud);
+// Each colored cloud has its own group and invisible bounding sphere. This
+// makes the whole cluster a single clickable object rather than 550 tiny hits.
+for (let ci = 0; ci < PALETTE.length; ci++) {
+  const center = clusterCenters[ci];
+  const positions = new Float32Array(PER_CLUSTER * 3);
+  const colors = new Float32Array(PER_CLUSTER * 3);
+
+  for (let j = 0; j < PER_CLUSTER; j++) {
+    const i = ci * PER_CLUSTER + j;
+    positions[j * 3] = points2D[i].x - center.x;
+    positions[j * 3 + 1] = points2D[i].y - center.y;
+    positions[j * 3 + 2] = 0;
+    colors[j * 3] = pointColors[i].r;
+    colors[j * 3 + 1] = pointColors[i].g;
+    colors[j * 3 + 2] = pointColors[i].b;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  const positionAttribute = new THREE.BufferAttribute(positions, 3);
+  geometry.setAttribute('position', positionAttribute);
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const material = new THREE.PointsMaterial({
+    size: 0.13,
+    map: dotTex,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.85,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+
+  const group = new THREE.Group();
+  group.position.set(center.x, center.y, 0);
+  group.add(new THREE.Points(geometry, material));
+
+  const hitTarget = new THREE.Mesh(hitGeometry, hitMaterial);
+  hitTarget.userData.clusterIndex = ci;
+  group.add(hitTarget);
+  rig.add(group);
+
+  clusterGroups.push(group);
+  clusterPositionAttributes.push(positionAttribute);
+  clusterMaterials.push(material);
+  clusterHitTargets.push(hitTarget);
+}
 
 // ---------- regression line (dotted) ----------
 function regressionLinePoints(t) {
@@ -336,7 +683,6 @@ const lineMat = new THREE.LineDashedMaterial({
 });
 const regLine = new THREE.Line(lineGeo, lineMat);
 regLine.computeLineDistances();
-rig.add(regLine);
 
 // ---------- axes ----------
 function makeAxis(dir, length, color) {
@@ -377,25 +723,81 @@ function updateFromScroll() {
 // ---------- free drag-to-orbit (mouse) ----------
 let dragRotY = 0, dragRotX = 0;
 let isDragging = false, lastPointerX = 0, lastPointerY = 0;
+let pointerStartX = 0, pointerStartY = 0, pointerMoved = false;
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let selectedClusterIndex = null;
+let panelOpen = false;
+let selectionProgress = 0;
+let selectionFrom = 0;
+let selectionTarget = 0;
+let selectionStartedAt = 0;
+const activeClusterPosition = new THREE.Vector3(-4.6, 0, 1.1);
+const clusterPanel = document.getElementById('cluster-panel');
+const clusterPanelTitle = document.getElementById('cluster-panel-title');
+const closeClusterPanel = document.getElementById('close-cluster-panel');
+
+function animateSelection(target) {
+  selectionFrom = selectionProgress;
+  selectionTarget = target;
+  selectionStartedAt = performance.now();
+}
+
+function closeSelectedCluster() {
+  if (selectedClusterIndex === null) return;
+  panelOpen = false;
+  clusterPanel.classList.remove('open');
+  clusterPanel.setAttribute('aria-hidden', 'true');
+  animateSelection(0);
+}
+
+function selectCluster(clusterIndex) {
+  if (selectedClusterIndex === clusterIndex && panelOpen) {
+    closeSelectedCluster();
+    return;
+  }
+  selectedClusterIndex = clusterIndex;
+  selectionProgress = 0;
+  panelOpen = true;
+  clusterPanelTitle.textContent = PALETTE[clusterIndex].name;
+  clusterPanel.classList.add('open');
+  clusterPanel.setAttribute('aria-hidden', 'false');
+  animateSelection(1);
+}
+
+function hitTestCluster(clientX, clientY) {
+  const bounds = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((clientX - bounds.left) / bounds.width) * 2 - 1;
+  pointer.y = -((clientY - bounds.top) / bounds.height) * 2 + 1;
+  rig.updateMatrixWorld(true);
+  raycaster.setFromCamera(pointer, camera);
+  const hit = raycaster.intersectObjects(clusterHitTargets, false)[0];
+  if (hit) selectCluster(hit.object.userData.clusterIndex);
+}
 
 renderer.domElement.addEventListener('pointerdown', (e) => {
-  if (e.pointerType === 'touch') return; // touch drag stays as page scroll
   isDragging = true;
   lastPointerX = e.clientX;
   lastPointerY = e.clientY;
-  wrap.classList.add('dragging');
+  pointerStartX = e.clientX;
+  pointerStartY = e.clientY;
+  pointerMoved = false;
 });
 window.addEventListener('pointermove', (e) => {
   if (!isDragging) return;
   const dx = e.clientX - lastPointerX;
   const dy = e.clientY - lastPointerY;
+  if (Math.hypot(e.clientX - pointerStartX, e.clientY - pointerStartY) > 6) pointerMoved = true;
   lastPointerX = e.clientX;
   lastPointerY = e.clientY;
+  if (!pointerMoved) return;
+  wrap.classList.add('dragging');
   dragRotY += dx * 0.006;
   dragRotX = THREE.MathUtils.clamp(dragRotX + dy * 0.006, -1.3, 1.3);
   resetBtn.classList.toggle('visible', Math.abs(dragRotY) > 0.02 || Math.abs(dragRotX) > 0.02);
 });
-window.addEventListener('pointerup', () => {
+window.addEventListener('pointerup', (e) => {
+  if (isDragging && !pointerMoved) hitTestCluster(e.clientX, e.clientY);
   isDragging = false;
   wrap.classList.remove('dragging');
 });
@@ -406,6 +808,7 @@ resetBtn.addEventListener('click', () => {
   dragRotX = 0;
   resetBtn.classList.remove('visible');
 });
+closeClusterPanel.addEventListener('click', closeSelectedCluster);
 
 // ---------- easing ----------
 function easeInOutCubic(t) {
@@ -413,15 +816,36 @@ function easeInOutCubic(t) {
 }
 
 // ---------- animation loop ----------
-const posAttr = geo.attributes.position;
 const labelStart = document.getElementById('label-start');
 const labelMid = document.getElementById('label-mid');
 const labelEnd = document.getElementById('label-end');
+const greeting = document.getElementById('greeting');
 const progressFill = document.getElementById('progress-fill');
 const scrollHint = document.getElementById('scroll-hint');
 const legend = document.getElementById('legend');
 const axisXTitle = document.getElementById('axis-x-title');
 const axisYTitle = document.getElementById('axis-y-title');
+
+const GREETINGS = [
+  { text: "Hi, I'm Muhammed Anas", lang: 'en', dir: 'ltr' },
+  { text: 'مرحبًا، أنا محمد أنس', lang: 'ar', dir: 'rtl' },
+  { text: 'नमस्ते, मैं मुहम्मद अनस हूँ', lang: 'hi', dir: 'ltr' },
+  { text: 'ನಮಸ್ಕಾರ, ನಾನು ಮುಹಮ್ಮದ್ ಅನಸ್', lang: 'kn', dir: 'ltr' },
+  { text: 'ഹായ്, ഞാൻ മുഹമ്മദ് അനസ്', lang: 'ml', dir: 'ltr' },
+];
+let greetingIndex = 0;
+
+setInterval(() => {
+  greeting.classList.add('is-changing');
+  setTimeout(() => {
+    greetingIndex = (greetingIndex + 1) % GREETINGS.length;
+    const nextGreeting = GREETINGS[greetingIndex];
+    greeting.textContent = nextGreeting.text;
+    greeting.lang = nextGreeting.lang;
+    greeting.dir = nextGreeting.dir;
+    greeting.classList.remove('is-changing');
+  }, 220);
+}, 1900);
 
 PALETTE.forEach(c => {
   const row = document.createElement('div');
@@ -437,23 +861,59 @@ PALETTE.forEach(c => {
 });
 
 function render() {
-  const e = easeInOutCubic(progress);
+  // Stage 1: multilingual introduction. Stage 2: a stable 2D chart.
+  // Stage 3: continued scrolling unlocks the 3D data transformation.
+  const introMove = THREE.MathUtils.smoothstep(progress, 0.03, 0.27);
+  const visualProgress = THREE.MathUtils.clamp((progress - 0.65) / 0.35, 0, 1);
+  const e = easeInOutCubic(visualProgress);
+  const graphVisibility = THREE.MathUtils.smoothstep(progress, 0.34, 0.46);
+  wrap.style.opacity = graphVisibility;
+  wrap.style.pointerEvents = graphVisibility > 0.98 ? 'auto' : 'none';
+  labelStart.style.top = `${THREE.MathUtils.lerp(50, 12, introMove)}vh`;
+  labelStart.style.transform = `translate(-50%, ${THREE.MathUtils.lerp(-50, 0, introMove)}%)`;
 
   // rotate rig right -> left (negative Y rotation) up to ~55 degrees, revealing depth
   // plus whatever free-drag offset the user has applied on top
   const maxRotation = -0.95; // radians (~ -54deg)
-  rig.rotation.y = maxRotation * e + dragRotY;
-  rig.rotation.x = 0.12 * e + dragRotX; // slight tilt down for perspective, plus drag
+  rig.rotation.y = maxRotation * e + dragRotY + handRotationY;
+  rig.rotation.x = 0.12 * e + dragRotX + handRotationX; // slight tilt down for perspective, drag, and hand control
 
-  // morph points from z=0 to their true z value
-  for (let i = 0; i < N; i++) {
-    const z = THREE.MathUtils.lerp(0, points3D[i].z, e);
-    posAttr.setZ(i, z);
+  if (selectionStartedAt) {
+    const elapsed = Math.min((performance.now() - selectionStartedAt) / 520, 1);
+    selectionProgress = THREE.MathUtils.lerp(selectionFrom, selectionTarget, easeInOutCubic(elapsed));
+    if (elapsed === 1) {
+      selectionStartedAt = 0;
+      if (selectionTarget === 0) selectedClusterIndex = null;
+    }
   }
-  posAttr.needsUpdate = true;
+
+  // Make room for the larger panel while keeping the complete graph visible.
+  rig.position.x = THREE.MathUtils.lerp(0, -1.2, selectionProgress);
+
+  // Morph each independently clickable point cloud from its 2D location to 3D.
+  for (let ci = 0; ci < PALETTE.length; ci++) {
+    const center = clusterCenters[ci];
+    const group = clusterGroups[ci];
+    const posAttr = clusterPositionAttributes[ci];
+    const isSelected = ci === selectedClusterIndex;
+
+    for (let j = 0; j < PER_CLUSTER; j++) {
+      const i = ci * PER_CLUSTER + j;
+      posAttr.setZ(j, (points3D[i].z - center.z) * e);
+    }
+    posAttr.needsUpdate = true;
+
+    const originalPosition = new THREE.Vector3(center.x, center.y, center.z * e);
+    group.position.lerpVectors(originalPosition, activeClusterPosition, isSelected ? selectionProgress : 0);
+    const scale = isSelected ? THREE.MathUtils.lerp(1, 0.46, selectionProgress) : 1;
+    group.scale.setScalar(scale);
+    clusterMaterials[ci].opacity = isSelected
+      ? 0.92
+      : THREE.MathUtils.lerp(0.85, 0.3, selectionProgress);
+  }
 
   // fade in z-axis + grid as rotation progresses
-  const zOpacity = THREE.MathUtils.smoothstep(progress, 0.15, 0.7);
+  const zOpacity = THREE.MathUtils.smoothstep(visualProgress, 0.15, 0.7);
   axisZ.material.opacity = zOpacity * 0.7;
   axisZneg.material.opacity = zOpacity * 0.7;
   gridHelper.material.opacity = zOpacity * 0.25;
@@ -467,17 +927,18 @@ function render() {
   camera.lookAt(0, 0, 0);
 
   // labels crossfade
-  labelStart.style.opacity = 1 - THREE.MathUtils.smoothstep(progress, 0.0, 0.18);
+  labelStart.style.opacity = 1 - THREE.MathUtils.smoothstep(progress, 0.43, 0.56);
   labelMid.style.opacity =
-    THREE.MathUtils.smoothstep(progress, 0.15, 0.35) *
-    (1 - THREE.MathUtils.smoothstep(progress, 0.65, 0.85));
-  labelEnd.style.opacity = THREE.MathUtils.smoothstep(progress, 0.8, 0.98);
+    THREE.MathUtils.smoothstep(progress, 0.48, 0.58) *
+    (1 - THREE.MathUtils.smoothstep(progress, 0.68, 0.78));
+  labelEnd.style.opacity = THREE.MathUtils.smoothstep(progress, 0.82, 0.96);
 
   progressFill.style.height = (progress * 100) + '%';
-  scrollHint.style.opacity = progress > 0.05 ? 0 : 0.6;
-  legend.classList.toggle('visible', progress > 0.3);
-  axisXTitle.classList.toggle('visible', progress < 0.5);
-  axisYTitle.classList.toggle('visible', progress < 0.5);
+  scrollHint.textContent = progress < 0.34 ? 'scroll to enter' : progress < 0.65 ? 'scroll to transform' : 'scroll to explore';
+  scrollHint.style.opacity = progress > 0.94 ? 0 : 0.6;
+  legend.classList.toggle('visible', visualProgress > 0.3);
+  axisXTitle.classList.toggle('visible', graphVisibility > 0.9 && visualProgress < 0.5);
+  axisYTitle.classList.toggle('visible', graphVisibility > 0.9 && visualProgress < 0.5);
 
   renderer.render(scene, camera);
   requestAnimationFrame(render);
