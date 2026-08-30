@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Regression → 3D Scatter | Scroll Prototype</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 400vh;
+    background: #0a0a0c;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    overflow-x: hidden;
+  }
+  #canvas-wrap {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    cursor: grab;
+    opacity: 1;
+    pointer-events: none;
+    transition: opacity 0.55s ease;
+  }
+  #canvas-wrap.dragging { cursor: grabbing; }
+  canvas { display: block; }
+  #site-header {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    width: min(276px, calc(100vw - 36px));
+    min-height: 52px;
+    padding: 0 18px;
+    background: rgba(255, 253, 251, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 30px;
+    box-shadow: 0 8px 30px rgba(34, 24, 18, 0.05);
+    backdrop-filter: blur(18px) saturate(135%);
+    color: #121214;
+    overflow: hidden;
+    transform: translateX(-50%);
+    transition: width 420ms cubic-bezier(0.65, 0, 0.35, 1), box-shadow 250ms ease;
+  }
+  #site-header:hover, #site-header:focus-within, #site-header.menu-open {
+    width: min(963px, calc(100vw - 24px));
+    box-shadow: 0 10px 34px rgba(34, 24, 18, 0.09);
+  }
+  #site-header h1 {
+    position: absolute;
+    left: 50%;
+    width: auto;
+    margin: 0;
+    font: 700 21px/1.2 Arial, sans-serif;
+    text-align: left;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    transition: left 420ms cubic-bezier(0.65, 0, 0.35, 1), transform 420ms cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  #site-header:hover h1, #site-header:focus-within h1, #site-header.menu-open h1 {
+    left: 54px;
+    transform: translateX(0);
+  }
+  #site-header strong { color: #121214; }
+  #site-header nav {
+    position: absolute;
+    right: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    gap: 0;
+    margin-left: auto;
+    padding: 0;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(18px);
+    transition: opacity 180ms ease 100ms, transform 420ms cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  #site-header:hover nav, #site-header:focus-within nav, #site-header.menu-open nav {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+  #site-header a { color: inherit; text-decoration: none; }
+  .headernav {
+    margin: 0;
+    padding: 9px 10px;
+    color: #161616;
+    font: 400 18px/1.1 Arial, sans-serif;
+    cursor: pointer;
+  }
+  .headernav:hover {
+    background-color: #f2f2f2;
+    color: #000 !important;
+    border-radius: 12px;
+    transition: 0.25s;
+  }
+  #header-menu {
+    position: absolute;
+    left: 20px;
+    z-index: 1;
+    display: block;
+    width: 24px;
+    height: 20px;
+    margin-right: 12px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  #header-menu::before, #header-menu::after, #header-menu span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    margin: 4px 0;
+    background: #141414;
+    content: '';
+  }
+  @media (max-width: 800px) {
+    #site-header {
+      padding: 0 22px;
+      overflow: visible;
+    }
+    #site-header h1 { font-size: 23px; }
+    #site-header nav {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 0;
+      display: grid;
+      width: 100%;
+      padding: 10px;
+      background: rgba(255, 253, 251, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      border-radius: 20px;
+      backdrop-filter: blur(18px);
+    }
+    #site-header:hover nav, #site-header:focus-within nav { display: none; opacity: 0; pointer-events: none; }
+    #site-header.menu-open nav { display: grid; opacity: 1; pointer-events: auto; transform: translateX(0); }
+    .headernav { padding: 12px; font-size: 17px; }
+  }
+  #oneko {
+    z-index: 60;
+    pointer-events: none;
+    background-image: url('../cat-follow-cursor-oneko/oneko.gif') !important;
+  }
+
+  #launch-touchdesigner {
+    position: fixed;
+    top: 24px;
+    right: 28px;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    color: #4ee0c8;
+    background: rgba(10, 10, 12, 0.76);
+    border: 1px solid rgba(232, 236, 239, 0.2);
+    border-radius: 50%;
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    z-index: 20;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
+  #launch-touchdesigner:hover,
+  #launch-touchdesigner:focus-visible {
+    background: rgba(78, 224, 200, 0.13);
+    border-color: rgba(78, 224, 200, 0.7);
+    outline: none;
+    transform: translateY(-1px);
+  }
+  #launch-touchdesigner svg { width: 18px; height: 18px; }
+  #launch-touchdesigner.active {
+    color: #0a0a0c;
+    background: #4ee0c8;
+    border-color: #4ee0c8;
+  }
+  #launch-touchdesigner:disabled { cursor: wait; opacity: 0.7; }
+
+  #reset-view {
+    position: fixed;
+    right: 32px;
+    bottom: 40px;
+    background: transparent;
+    border: 1px solid rgba(232,236,239,0.25);
+    color: rgba(232,236,239,0.6);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.4s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  #reset-view.visible { opacity: 1; }
+  #reset-view:hover {
+    color: #4ee0c8;
+    border-color: rgba(78,224,200,0.5);
+  }
+
+  .label {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: #e8ecef;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .label .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #4ee0c8;
+    margin-bottom: 8px;
+  }
+  .label h1 {
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .greeting {
+    min-height: 1.3em;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  .greeting.is-changing {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  .graph-name {
+    margin-top: 12px;
+    color: rgba(232, 236, 239, 0.5);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  #label-start { top: 50vh; transform: translate(-50%, -50%); opacity: 1; }
+  #label-mid   { top: 12vh; opacity: 0; }
+  #label-end   { top: 12vh; opacity: 0; }
+
+  #progress-track {
+    position: fixed;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 220px;
+    background: rgba(255,255,255,0.08);
+  }
+  #progress-fill {
+    width: 100%;
+    background: #4ee0c8;
+    height: 0%;
+    transition: height 0.05s linear;
+  }
+  #scroll-hint {
+    position: fixed;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(232,236,239,0.4);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    transition: opacity 0.4s ease;
+  }
+
+  #legend {
+    position: fixed;
+    left: 32px;
+    bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  #legend.visible { opacity: 1; }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(232,236,239,0.55);
+  }
+  .legend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .axis-title {
+    position: fixed;
+    color: rgba(232,236,239,0.5);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .axis-title.visible { opacity: 1; }
+  #axis-x-title {
+    right: 40px;
+    bottom: 46%;
+  }
+  #axis-y-title {
+    left: 50%;
+    top: 8%;
+    transform: translateX(-50%);
+  }
+
+  #hand-panel {
+    position: fixed;
+    right: 58px;
+    bottom: 40px;
+    width: 190px;
+    padding: 12px 14px;
+    background: rgba(10,10,12,0.78);
+    border: 1px solid rgba(232,236,239,0.14);
+    border-radius: 10px;
+    color: rgba(232,236,239,0.72);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    z-index: 10;
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+
+  #hand-panel.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  #hand-status {
+    color: rgba(232,236,239,0.45);
+    margin-bottom: 9px;
+  }
+
+  #hand-status.active {
+    color: #4ee0c8;
+  }
+
+  #enable-hand {
+    width: 100%;
+    color: #4ee0c8;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  #hand-distance {
+    margin-top: 9px;
+    color: rgba(232,236,239,0.42);
+  }
+
+  #hand-video {
+    position: fixed;
+    right: 58px;
+    bottom: 145px;
+    width: 190px;
+    height: 143px;
+    object-fit: cover;
+    transform: scaleX(-1);
+    border-radius: 10px;
+    border: 1px solid rgba(232,236,239,0.12);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    z-index: 10;
+  }
+
+  #hand-video.visible {
+    opacity: 0.72;
+  }
+
+  #cluster-panel {
+    position: fixed;
+    top: 50%;
+    right: 32px;
+    width: min(480px, 42vw);
+    min-height: min(620px, 70vh);
+    padding: 30px;
+    color: #e8ecef;
+    background: rgba(10, 10, 12, 0.92);
+    border: 1px solid rgba(78, 224, 200, 0.35);
+    border-radius: 16px;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(14px);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(112%, -50%);
+    transition: transform 540ms cubic-bezier(0.65, 0, 0.35, 1), opacity 540ms ease;
+    z-index: 30;
+  }
+  #cluster-panel.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(0, -50%);
+  }
+  #cluster-panel-title {
+    padding-right: 38px;
+    color: #4ee0c8;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    line-height: 1.5;
+    text-transform: uppercase;
+  }
+  #cluster-panel-content {
+    margin-top: 32px;
+    color: rgba(232, 236, 239, 0.56);
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  #close-cluster-panel {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(232, 236, 239, 0.2);
+    border-radius: 50%;
+    color: rgba(232, 236, 239, 0.72);
+    background: transparent;
+    cursor: pointer;
+    font: 19px/1 sans-serif;
+  }
+  #close-cluster-panel:hover { border-color: #4ee0c8; color: #4ee0c8; }
+
+</style>
+</head>
+<body>
+
+<header id="site-header">
+  <button id="header-menu" type="button" aria-label="Open navigation" aria-expanded="false"><span></span></button>
+  <h1>Muhammed Anas</h1>
+  <nav aria-label="Portfolio links">
+    <a id="skills-link" href="#skills"><p class="headernav">Skills.</p></a>
+    <a id="work-link" href="#projects"><p class="headernav">Work</p></a>
+    <a href="https://www.linkedin.com/in/muhammed-anas-475807259/" target="_blank" rel="noopener noreferrer"><p class="headernav">LinkedIn</p></a>
+    <a href="https://www.github.com/Anas0069" target="_blank" rel="noopener noreferrer"><p class="headernav">GitHub</p></a>
+  </nav>
+</header>
+
+<div id="canvas-wrap"></div>
+
+<button id="launch-touchdesigner"
+   type="button"
+   aria-label="Enable camera hand controls"
+   aria-pressed="false"
+   title="Enable camera hand controls">
+  <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 7.5h3.4l1.2-2h8.8l1.2 2H21v11H3z"/>
+    <circle cx="12" cy="13" r="3.5"/>
+  </svg>
+</button>
+
+<div class="label" id="label-start">
+  <div class="eyebrow">Welcome</div>
+  <h1 class="greeting" id="greeting">Hi, I'm Muhammed Anas</h1>
+</div>
+<div class="label" id="label-mid">
+  <div class="eyebrow">Data visualization</div>
+  <h1>Explore me in terms of Machine Leaning</h1>
+  <div class="graph-name">KNN Clusters</div>
+</div>
+<div class="label" id="label-end">
+  <div class="eyebrow">Interactive view</div>
+  <h1>my vectorDB : AnasDB</h1>
+</div>
+
+<div id="progress-track"><div id="progress-fill"></div></div>
+<div id="scroll-hint">scroll to rotate</div>
+<div id="legend"></div>
+<div class="axis-title" id="axis-x-title">Age (0–25) →</div>
+<div class="axis-title" id="axis-y-title">↑ Productivity</div>
+<div id="hand-panel">
+  <div id="hand-status">HAND TRACKING: OFF</div>
+  <div id="enable-hand" aria-hidden="true">Use the camera button</div>
+  <div id="hand-distance">Thumb ↔ Ring: —</div>
+</div>
+<video id="hand-video" autoplay playsinline muted></video>
+<button id="reset-view">Reset view</button>
+<aside id="cluster-panel" aria-hidden="true" aria-label="Portfolio section details">
+  <button id="close-cluster-panel" type="button" aria-label="Close section panel">×</button>
+  <div id="cluster-panel-title"></div>
+  <div id="cluster-panel-content">Section details will appear here.</div>
+</aside>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.module.js"
+  }
+}
+</script>
+
+<script src="https://unpkg.com/@mediapipe/tasks-vision@latest/vision_bundle.js"></script>
+<script src="face-expression-data.js"></script>
+<script src="../cat-follow-cursor-oneko/oneko.js"></script>
+<script type="module">
+import * as THREE from 'three';
+
+// ---------- MediaPipe hand tracking: Phase 1 ----------
+const handStatus = document.getElementById('hand-status');
+const enableHandBtn = document.getElementById('enable-hand');
+const handDistanceEl = document.getElementById('hand-distance');
+const handVideo = document.getElementById('hand-video');
+const handPanel = document.getElementById('hand-panel');
+const cameraControl = document.getElementById('launch-touchdesigner');
+
+let handLandmarker = null;
+let handStream = null;
+let handTrackingStarted = false;
+let lastVideoTime = -1;
+let handRotationY = 0;
+let handRotationX = 0;
+
+const HAND_MODEL_URL =
+  "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+
+async function setupHandTracking() {
+  if (handTrackingStarted || cameraControl.disabled) return;
+  cameraControl.disabled = true;
+  enableHandBtn.style.opacity = '0.55';
+  enableHandBtn.textContent = 'Loading MediaPipe...';
+  handStatus.textContent = 'HAND TRACKING: LOADING';
+
+  try {
+    const vision = await window.vision.FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+    );
+
+    handLandmarker = await window.vision.HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: HAND_MODEL_URL
+      },
+      runningMode: "VIDEO",
+      numHands: 1
+    });
+
+    handStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user",
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+
+    handVideo.srcObject = handStream;
+    await handVideo.play();
+
+    handTrackingStarted = true;
+    handVideo.classList.add('visible');
+    handPanel.classList.add('visible');
+    handStatus.textContent = 'HAND TRACKING: ACTIVE';
+    handStatus.classList.add('active');
+    enableHandBtn.textContent = 'Camera active';
+    cameraControl.disabled = false;
+    cameraControl.classList.add('active');
+    cameraControl.setAttribute('aria-pressed', 'true');
+    cameraControl.title = 'Camera hand controls active';
+
+    requestAnimationFrame(trackHand);
+  } catch (error) {
+    console.error('MediaPipe setup failed:', error);
+    handStatus.textContent = 'HAND TRACKING: ERROR';
+    cameraControl.disabled = false;
+    cameraControl.title = 'Camera unavailable — check browser permission';
+    enableHandBtn.style.opacity = '1';
+    enableHandBtn.textContent = 'Camera unavailable';
+    handDistanceEl.textContent = 'Check camera permission / localhost';
+  }
+}
+
+function landmarkDistance(a, b) {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  const dz = a.z - b.z;
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+function trackHand() {
+  if (!handTrackingStarted || !handLandmarker) return;
+
+  if (handVideo.readyState >= 2 && handVideo.currentTime !== lastVideoTime) {
+    lastVideoTime = handVideo.currentTime;
+
+    const result = handLandmarker.detectForVideo(
+      handVideo,
+      performance.now()
+    );
+
+    if (result.landmarks && result.landmarks.length > 0) {
+      const landmarks = result.landmarks[0];
+
+      // MediaPipe landmark 4 = thumb tip
+      // MediaPipe landmark 16 = ring finger tip
+      const thumbTip = landmarks[4];
+      const ringTip = landmarks[16];
+
+      const rawDistance = landmarkDistance(thumbTip, ringTip);
+      const indexTip = landmarks[8];
+
+      // Drive the browser's 3D visualization directly with live MediaPipe data.
+      handRotationY = (0.5 - indexTip.x) * 1.7;
+      handRotationX = (0.5 - indexTip.y) * 0.85;
+
+      handDistanceEl.textContent =
+        `Thumb ↔ Ring: ${rawDistance.toFixed(3)}`;
+    } else {
+      handRotationY *= 0.92;
+      handRotationX *= 0.92;
+      handDistanceEl.textContent = 'Thumb ↔ Ring: —';
+    }
+  }
+
+  requestAnimationFrame(trackHand);
+}
+
+// Camera access is opt-in: the visitor starts it from the camera control.
+cameraControl.addEventListener('click', setupHandTracking);
+
+
+// ---------- scene setup ----------
+const wrap = document.getElementById('canvas-wrap');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+camera.position.set(0, 0, 12);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+wrap.appendChild(renderer.domElement);
+
+const rig = new THREE.Group(); // everything rotates via this group
+rig.scale.setScalar(0.85);
+scene.add(rig);
+
+// ---------- accent colors ----------
+const ACCENT = 0x4ee0c8;
+const GRID = 0x2a2f33;
+const POINT_DIM = 0x6b7478;
+
+// ---------- data generation ----------
+// Deterministic pseudo-random for consistent look
+function rand(seed) {
+  const x = Math.sin(seed * 999) * 10000;
+  return x - Math.floor(x);
+}
+
+const PALETTE = [
+  { name: 'Who I Am (Introduction)', hex: 0x7c3aed }, // Violet
+  { name: 'The Grind (Education)', hex: 0x4f46e5 }, // Indigo
+  { name: "What I've Built (Projects)", hex: 0x3b82f6 }, // Blue
+  { name: 'Brainy Stuff (Research Papers)', hex: 0x22c55e }, // Green
+  { name: 'Been There, Done That (Experience)', hex: 0xeab308 }, // Yellow
+  { name: 'My Toolkit (Technical Skills)', hex: 0xf97316 }, // Orange
+  { name: "Let's Link (Connect)", hex: 0xef4444 }, // Red
+  { name: 'Flex Zone (Extras/Achievements)', hex: 0xec4899 }, // Pink
+];
+
+const PER_CLUSTER = 550;
+const N = PALETTE.length * PER_CLUSTER;
+
+// Fibonacci sphere distribution: spaces the 8 cluster centers as far apart
+// from each other as possible in 3D (no two clusters share a hemisphere
+// direction), so every color — including pink and red — lands in its own
+// clearly separated region once the scene rotates, rather than bunching
+// along the regression line.
+function fibonacciSphere(i, n, radius) {
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const yNorm = 1 - (i / (n - 1)) * 2; // 1 -> -1
+  const radiusAtY = Math.sqrt(Math.max(0, 1 - yNorm * yNorm));
+  const theta = goldenAngle * i;
+  return {
+    x: Math.cos(theta) * radiusAtY * radius,
+    y: yNorm * radius * 0.6, // compress vertical spread a touch
+    z: Math.sin(theta) * radiusAtY * radius,
+  };
+}
+
+const CLUSTER_RADIUS = 4.6;
+const clusterCenters = PALETTE.map((c, i) => fibonacciSphere(i, PALETTE.length, CLUSTER_RADIUS));
+
+// tighter, denser jitter around each center — reads as a dense point
+// cloud (lots of data) rather than a handful of scattered dots
+function denseJitter(seed, spread) {
+  const a = rand(seed * 2.13) - 0.5;
+  const b = rand(seed * 5.77) - 0.5;
+  return (a + b) * spread; // triangular-ish distribution, denser toward center
+}
+
+const points2D = []; // {x,y}
+const points3D = []; // {x,y,z}
+const pointColors = []; // THREE.Color per point
+const pointCluster = []; // cluster index per point, used for hover/labels later
+
+for (let ci = 0; ci < PALETTE.length; ci++) {
+  const center = clusterCenters[ci];
+  for (let j = 0; j < PER_CLUSTER; j++) {
+    const seed = ci * 977 + j;
+    const jx = denseJitter(seed * 3.1, 0.9);
+    const jy = denseJitter(seed * 7.7, 0.8);
+    const jz = denseJitter(seed * 13.3, 0.9);
+    const x = center.x + jx;
+    const y = center.y + jy;
+    const z = center.z + jz;
+    points2D.push({ x, y, z: 0 });
+    points3D.push({ x, y, z });
+    pointColors.push(new THREE.Color(PALETTE[ci].hex));
+    pointCluster.push(ci);
+  }
+}
+
+// ---------- opening face targets ----------
+// These are alternate positions for the *same* cluster particles. The six
+// expressions share a stable particle identity, so every point glides between
+// face poses instead of being replaced by a second effect.
+const FACE_EXPRESSIONS = ['crying', 'surprised', 'smiling', 'winking'];
+let faceTargets = FACE_EXPRESSIONS.map((_, expressionIndex) => {
+  const target = new Float32Array(N * 3);
+  const eyeOpen = [0.34, 0.68, 0.26, 0.26, 0.18, 0.3][expressionIndex];
+  const mouthOpen = [0.06, 0.52, 0.12, 0.1, 0.34, 0.08][expressionIndex];
+
+  for (let i = 0; i < N; i++) {
+    const zone = rand(i * 17.13);
+    const side = rand(i * 29.7) < 0.5 ? -1 : 1;
+    const a = rand(i * 41.9) * Math.PI * 2;
+    const radius = Math.sqrt(rand(i * 53.1));
+    let x = 0, y = 0, z = (rand(i * 71.3) - 0.5) * 0.12;
+
+    if (zone < 0.42) { // face fill
+      x = Math.cos(a) * radius * 2.65;
+      y = Math.sin(a) * radius * 3.15 - 0.15;
+    } else if (zone < 0.62) { // textured hair mass
+      x = (rand(i * 83.7) - 0.5) * 5.6;
+      y = 2.3 + rand(i * 97.4) * 1.55 - Math.abs(x) * 0.24;
+    } else if (zone < 0.76) { // glasses + eyes
+      const eyeX = side * 1.12;
+      const t = rand(i * 107.2) * Math.PI * 2;
+      const winkedEye = expressionIndex === 3 && side === 1;
+      const height = winkedEye ? 0.045 : eyeOpen;
+      x = eyeX + Math.cos(t) * 0.63;
+      y = 0.48 + Math.sin(t) * height;
+    } else if (zone < 0.82) { // eyebrows
+      const t = rand(i * 113.8) - 0.5;
+      x = side * 1.12 + t * 1.1;
+      y = 1.22 + (expressionIndex === 1 ? Math.abs(t) * 0.35 : -t * side * 0.12);
+    } else if (zone < 0.93) { // mouth, altered per expression
+      const t = rand(i * 127.1) * 2 - 1;
+      x = t * 1.05;
+      const smileCurve = expressionIndex === 2 || expressionIndex === 4 ? 0.58 * t * t : 0;
+      const cryCurve = expressionIndex === 5 ? -0.42 * t * t : 0;
+      const surprised = expressionIndex === 1 ? Math.sin(t * Math.PI) * mouthOpen : 0;
+      y = -1.32 + smileCurve + cryCurve + surprised + (rand(i * 139.9) - 0.5) * mouthOpen;
+    } else { // neck / shoulders, with tears in the crying pose
+      x = (rand(i * 149.4) - 0.5) * 5.8;
+      y = -3.0 + rand(i * 163.2) * 1.25;
+      if (expressionIndex === 5 && zone > 0.965) {
+        x = side * 1.18 + (rand(i * 173.6) - 0.5) * 0.12;
+        y = -0.05 - rand(i * 181.1) * 1.25;
+      }
+    }
+    target[i * 3] = x;
+    target[i * 3 + 1] = y;
+    target[i * 3 + 2] = z;
+  }
+  return target;
+});
+
+// Replace the procedural fallback with the exact coordinate structure from
+// the supplied face implementation, using this site's existing particle pool.
+faceTargets = FACE_EXPRESSIONS.map((expression) => {
+  const source = window.REFERENCE_FACE_EXPRESSIONS[expression];
+  const target = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    const sourcePoint = source[i % source.length];
+    const duplicate = Math.floor(i / source.length);
+    const angle = i * 2.3999632297;
+    const offset = duplicate * 0.018;
+    target[i * 3] = sourcePoint[0] * 4.1 + Math.cos(angle) * offset;
+    target[i * 3 + 1] = -sourcePoint[1] * 4.1 + Math.sin(angle) * offset;
+    target[i * 3 + 2] = (rand(i * 71.3) - 0.5) * 0.12;
+  }
+  return target;
+});
+
+function facePoseAt(index, elapsed) {
+  const holdMs = 1200;
+  const morphMs = 1800;
+  const cycleMs = holdMs + morphMs;
+  const phase = elapsed % cycleMs;
+  const nextIndex = (index + 1) % FACE_EXPRESSIONS.length;
+  return {
+    current: faceTargets[index],
+    next: faceTargets[nextIndex],
+    blend: phase <= holdMs ? 0 : easeInOutCubic((phase - holdMs) / morphMs),
+  };
+}
+
+// ---------- point cloud (dotted look via sprite circles) ----------
+function makeDotTexture() {
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createRadialGradient(32,32,0,32,32,32);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.4, 'rgba(255,255,255,0.9)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,64,64);
+  return new THREE.CanvasTexture(c);
+}
+const dotTex = makeDotTexture();
+
+const clusterGroups = [];
+const clusterPositionAttributes = [];
+const clusterMaterials = [];
+const clusterHitTargets = [];
+const hitMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+const hitGeometry = new THREE.SphereGeometry(1.35, 16, 12);
+
+// Each colored cloud has its own group and invisible bounding sphere. This
+// makes the whole cluster a single clickable object rather than 550 tiny hits.
+for (let ci = 0; ci < PALETTE.length; ci++) {
+  const center = clusterCenters[ci];
+  const positions = new Float32Array(PER_CLUSTER * 3);
+  const colors = new Float32Array(PER_CLUSTER * 3);
+
+  for (let j = 0; j < PER_CLUSTER; j++) {
+    const i = ci * PER_CLUSTER + j;
+    positions[j * 3] = points2D[i].x - center.x;
+    positions[j * 3 + 1] = points2D[i].y - center.y;
+    positions[j * 3 + 2] = 0;
+    colors[j * 3] = pointColors[i].r;
+    colors[j * 3 + 1] = pointColors[i].g;
+    colors[j * 3 + 2] = pointColors[i].b;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  const positionAttribute = new THREE.BufferAttribute(positions, 3);
+  geometry.setAttribute('position', positionAttribute);
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const material = new THREE.PointsMaterial({
+    size: 0.13,
+    map: dotTex,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.85,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+
+  const group = new THREE.Group();
+  group.position.set(center.x, center.y, 0);
+  group.add(new THREE.Points(geometry, material));
+
+  const hitTarget = new THREE.Mesh(hitGeometry, hitMaterial);
+  hitTarget.userData.clusterIndex = ci;
+  group.add(hitTarget);
+  rig.add(group);
+
+  clusterGroups.push(group);
+  clusterPositionAttributes.push(positionAttribute);
+  clusterMaterials.push(material);
+  clusterHitTargets.push(hitTarget);
+}
+
+// ---------- regression line (dotted) ----------
+function regressionLinePoints(t) {
+  const p1 = new THREE.Vector3(-6.4, 0.55 * -6.4, 0);
+  const p2 = new THREE.Vector3(6.4, 0.55 * 6.4, 0);
+  return [p1, p2];
+}
+const [lp1, lp2] = regressionLinePoints(0);
+const lineGeo = new THREE.BufferGeometry().setFromPoints(
+  Array.from({length: 40}, (_, i) => {
+    const t = i / 39;
+    return new THREE.Vector3(
+      THREE.MathUtils.lerp(lp1.x, lp2.x, t),
+      THREE.MathUtils.lerp(lp1.y, lp2.y, t),
+      0
+    );
+  })
+);
+const lineMat = new THREE.LineDashedMaterial({
+  color: ACCENT,
+  dashSize: 0.12,
+  gapSize: 0.12,
+  transparent: true,
+  opacity: 0.85
+});
+const regLine = new THREE.Line(lineGeo, lineMat);
+regLine.computeLineDistances();
+
+// ---------- axes ----------
+function makeAxis(dir, length, color) {
+  const points = [new THREE.Vector3(0,0,0), dir.clone().multiplyScalar(length)];
+  const g = new THREE.BufferGeometry().setFromPoints(points);
+  const m = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.5 });
+  return new THREE.Line(g, m);
+}
+const axisX = makeAxis(new THREE.Vector3(1,0,0), 7, GRID);
+const axisXneg = makeAxis(new THREE.Vector3(-1,0,0), 7, GRID);
+const axisY = makeAxis(new THREE.Vector3(0,1,0), 4.5, GRID);
+const axisYneg = makeAxis(new THREE.Vector3(0,-1,0), 4.5, GRID);
+rig.add(axisX, axisXneg, axisY, axisYneg);
+
+// z axis fades in as we rotate
+const axisZ = makeAxis(new THREE.Vector3(0,0,1), 7, ACCENT);
+const axisZneg = makeAxis(new THREE.Vector3(0,0,-1), 7, ACCENT);
+axisZ.material.opacity = 0;
+axisZneg.material.opacity = 0;
+rig.add(axisZ, axisZneg);
+
+// faint ground grid (xz plane) that fades in with rotation, sells the 3D depth
+const gridHelper = new THREE.GridHelper(14, 16, GRID, GRID);
+gridHelper.material.transparent = true;
+gridHelper.material.opacity = 0;
+gridHelper.position.y = -3.6;
+rig.add(gridHelper);
+
+// ---------- scroll-driven progress ----------
+let progress = 0; // 0 -> 1
+const scrollHeight = () => document.body.scrollHeight - window.innerHeight;
+
+function updateFromScroll() {
+  const p = window.scrollY / scrollHeight();
+  progress = THREE.MathUtils.clamp(p, 0, 1);
+}
+
+// ---------- free drag-to-orbit (mouse) ----------
+let dragRotY = 0, dragRotX = 0;
+let isDragging = false, lastPointerX = 0, lastPointerY = 0;
+let pointerStartX = 0, pointerStartY = 0, pointerMoved = false;
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let selectedClusterIndex = null;
+let panelOpen = false;
+let selectionProgress = 0;
+let selectionFrom = 0;
+let selectionTarget = 0;
+let selectionStartedAt = 0;
+const activeClusterPosition = new THREE.Vector3(-4.6, 0, 1.1);
+const clusterPanel = document.getElementById('cluster-panel');
+const clusterPanelTitle = document.getElementById('cluster-panel-title');
+const closeClusterPanel = document.getElementById('close-cluster-panel');
+
+function animateSelection(target) {
+  selectionFrom = selectionProgress;
+  selectionTarget = target;
+  selectionStartedAt = performance.now();
+}
+
+function closeSelectedCluster() {
+  if (selectedClusterIndex === null) return;
+  panelOpen = false;
+  clusterPanel.classList.remove('open');
+  clusterPanel.setAttribute('aria-hidden', 'true');
+  animateSelection(0);
+}
+
+function selectCluster(clusterIndex) {
+  if (selectedClusterIndex === clusterIndex && panelOpen) {
+    closeSelectedCluster();
+    return;
+  }
+  selectedClusterIndex = clusterIndex;
+  selectionProgress = 0;
+  panelOpen = true;
+  clusterPanelTitle.textContent = PALETTE[clusterIndex].name;
+  clusterPanel.classList.add('open');
+  clusterPanel.setAttribute('aria-hidden', 'false');
+  animateSelection(1);
+}
+
+// The header's Work link moves directly to the interactive stage and opens
+// the Projects cluster ("What I've Built") as one continuous navigation.
+document.getElementById('work-link').addEventListener('click', (event) => {
+  event.preventDefault();
+  window.scrollTo({ top: scrollHeight(), behavior: 'smooth' });
+  window.setTimeout(() => selectCluster(2), 650);
+});
+document.getElementById('skills-link').addEventListener('click', (event) => {
+  event.preventDefault();
+  window.scrollTo({ top: scrollHeight(), behavior: 'smooth' });
+  window.setTimeout(() => selectCluster(5), 650);
+});
+const header = document.getElementById('site-header');
+const headerMenu = document.getElementById('header-menu');
+headerMenu.addEventListener('click', () => {
+  const isOpen = header.classList.toggle('menu-open');
+  headerMenu.setAttribute('aria-expanded', String(isOpen));
+});
+
+function hitTestCluster(clientX, clientY) {
+  const bounds = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((clientX - bounds.left) / bounds.width) * 2 - 1;
+  pointer.y = -((clientY - bounds.top) / bounds.height) * 2 + 1;
+  rig.updateMatrixWorld(true);
+  raycaster.setFromCamera(pointer, camera);
+  const hit = raycaster.intersectObjects(clusterHitTargets, false)[0];
+  if (hit) selectCluster(hit.object.userData.clusterIndex);
+}
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  isDragging = true;
+  lastPointerX = e.clientX;
+  lastPointerY = e.clientY;
+  pointerStartX = e.clientX;
+  pointerStartY = e.clientY;
+  pointerMoved = false;
+});
+window.addEventListener('pointermove', (e) => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastPointerX;
+  const dy = e.clientY - lastPointerY;
+  if (Math.hypot(e.clientX - pointerStartX, e.clientY - pointerStartY) > 6) pointerMoved = true;
+  lastPointerX = e.clientX;
+  lastPointerY = e.clientY;
+  if (!pointerMoved) return;
+  wrap.classList.add('dragging');
+  dragRotY += dx * 0.006;
+  dragRotX = THREE.MathUtils.clamp(dragRotX + dy * 0.006, -1.3, 1.3);
+  resetBtn.classList.toggle('visible', Math.abs(dragRotY) > 0.02 || Math.abs(dragRotX) > 0.02);
+});
+window.addEventListener('pointerup', (e) => {
+  if (isDragging && !pointerMoved) hitTestCluster(e.clientX, e.clientY);
+  isDragging = false;
+  wrap.classList.remove('dragging');
+});
+
+const resetBtn = document.getElementById('reset-view');
+resetBtn.addEventListener('click', () => {
+  dragRotY = 0;
+  dragRotX = 0;
+  resetBtn.classList.remove('visible');
+});
+closeClusterPanel.addEventListener('click', closeSelectedCluster);
+
+// ---------- easing ----------
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3) / 2;
+}
+
+// ---------- animation loop ----------
+const labelStart = document.getElementById('label-start');
+const labelMid = document.getElementById('label-mid');
+const labelEnd = document.getElementById('label-end');
+const greeting = document.getElementById('greeting');
+const progressFill = document.getElementById('progress-fill');
+const scrollHint = document.getElementById('scroll-hint');
+const legend = document.getElementById('legend');
+const axisXTitle = document.getElementById('axis-x-title');
+const axisYTitle = document.getElementById('axis-y-title');
+
+const GREETINGS = [
+  { text: "Hi, I'm Muhammed Anas", lang: 'en', dir: 'ltr' },
+  { text: 'مرحبًا، أنا محمد أنس', lang: 'ar', dir: 'rtl' },
+  { text: 'नमस्ते, मैं मुहम्मद अनस हूँ', lang: 'hi', dir: 'ltr' },
+  { text: 'ನಮಸ್ಕಾರ, ನಾನು ಮುಹಮ್ಮದ್ ಅನಸ್', lang: 'kn', dir: 'ltr' },
+  { text: 'ഹായ്, ഞാൻ മുഹമ്മദ് അനസ്', lang: 'ml', dir: 'ltr' },
+];
+let greetingIndex = 0;
+
+setInterval(() => {
+  greeting.classList.add('is-changing');
+  setTimeout(() => {
+    greetingIndex = (greetingIndex + 1) % GREETINGS.length;
+    const nextGreeting = GREETINGS[greetingIndex];
+    greeting.textContent = nextGreeting.text;
+    greeting.lang = nextGreeting.lang;
+    greeting.dir = nextGreeting.dir;
+    greeting.classList.remove('is-changing');
+  }, 220);
+}, 1900);
+
+PALETTE.forEach(c => {
+  const row = document.createElement('div');
+  row.className = 'legend-row';
+  const dot = document.createElement('span');
+  dot.className = 'legend-dot';
+  dot.style.background = '#' + c.hex.toString(16).padStart(6, '0');
+  const label = document.createElement('span');
+  label.textContent = c.name;
+  row.appendChild(dot);
+  row.appendChild(label);
+  legend.appendChild(row);
+});
+
+function render() {
+  // Stage 1: one shared particle pool forms a living face. Stage 2 disperses
+  // it into the existing 2D layout. Stage 3 uses the original 3D formation.
+  const introMove = THREE.MathUtils.smoothstep(progress, 0.03, 0.27);
+  const faceToScatter = THREE.MathUtils.smoothstep(progress, 0.25, 0.52);
+  const visualProgress = THREE.MathUtils.clamp((progress - 0.65) / 0.35, 0, 1);
+  const e = easeInOutCubic(visualProgress);
+  const graphVisibility = THREE.MathUtils.smoothstep(progress, 0.34, 0.52);
+  const faceElapsed = performance.now();
+  const faceCycle = 3000;
+  const faceExpression = Math.floor(faceElapsed / faceCycle) % FACE_EXPRESSIONS.length;
+  const facePose = facePoseAt(faceExpression, faceElapsed);
+  wrap.style.pointerEvents = faceToScatter > 0.98 ? 'auto' : 'none';
+  labelStart.style.top = `${THREE.MathUtils.lerp(50, 12, introMove)}vh`;
+  labelStart.style.transform = `translate(-50%, ${THREE.MathUtils.lerp(-50, 0, introMove)}%)`;
+
+  // rotate rig right -> left (negative Y rotation) up to ~55 degrees, revealing depth
+  // plus whatever free-drag offset the user has applied on top
+  const maxRotation = -0.95; // radians (~ -54deg)
+  rig.rotation.y = maxRotation * e + dragRotY + handRotationY;
+  rig.rotation.x = 0.12 * e + dragRotX + handRotationX; // slight tilt down for perspective, drag, and hand control
+
+  if (selectionStartedAt) {
+    const elapsed = Math.min((performance.now() - selectionStartedAt) / 520, 1);
+    selectionProgress = THREE.MathUtils.lerp(selectionFrom, selectionTarget, easeInOutCubic(elapsed));
+    if (elapsed === 1) {
+      selectionStartedAt = 0;
+      if (selectionTarget === 0) selectedClusterIndex = null;
+    }
+  }
+
+  // Opening composition: face left, greeting right. It settles back to the
+  // centered graph layout as the particles disperse, then still shifts left
+  // again only when a section panel is opened.
+  const openingFaceOffset = THREE.MathUtils.lerp(-3.1, 0, faceToScatter);
+  rig.position.x = openingFaceOffset + THREE.MathUtils.lerp(0, -1.2, selectionProgress);
+  labelStart.style.left = `${THREE.MathUtils.lerp(72, 50, faceToScatter)}%`;
+
+  // Every particle moves from its animated face target to the current 2D
+  // scatter position, then continues into its established 3D cluster target.
+  for (let ci = 0; ci < PALETTE.length; ci++) {
+    const center = clusterCenters[ci];
+    const group = clusterGroups[ci];
+    const posAttr = clusterPositionAttributes[ci];
+    const isSelected = ci === selectedClusterIndex;
+
+    for (let j = 0; j < PER_CLUSTER; j++) {
+      const i = ci * PER_CLUSTER + j;
+      const faceX = THREE.MathUtils.lerp(facePose.current[i * 3], facePose.next[i * 3], facePose.blend);
+      const faceY = THREE.MathUtils.lerp(facePose.current[i * 3 + 1], facePose.next[i * 3 + 1], facePose.blend);
+      const faceZ = THREE.MathUtils.lerp(facePose.current[i * 3 + 2], facePose.next[i * 3 + 2], facePose.blend);
+      const clusterX = points2D[i].x - center.x;
+      const clusterY = points2D[i].y - center.y;
+      const clusterZ = (points3D[i].z - center.z) * e;
+      posAttr.setXYZ(
+        j,
+        THREE.MathUtils.lerp(faceX, clusterX, faceToScatter),
+        THREE.MathUtils.lerp(faceY, clusterY, faceToScatter),
+        THREE.MathUtils.lerp(faceZ, clusterZ, faceToScatter)
+      );
+    }
+    posAttr.needsUpdate = true;
+
+    const originalPosition = new THREE.Vector3(center.x, center.y, center.z * e);
+    group.position.lerpVectors(new THREE.Vector3(0, 0, 0), originalPosition, faceToScatter);
+    if (isSelected) group.position.lerp(activeClusterPosition, selectionProgress);
+    const scale = isSelected ? THREE.MathUtils.lerp(1, 0.46, selectionProgress) : 1;
+    group.scale.setScalar(scale);
+    clusterMaterials[ci].opacity = isSelected
+      ? 0.92
+      : THREE.MathUtils.lerp(0.85, 0.3, selectionProgress) * THREE.MathUtils.lerp(1, 0.9, faceToScatter);
+  }
+
+  // fade in z-axis + grid as rotation progresses
+  const zOpacity = THREE.MathUtils.smoothstep(visualProgress, 0.15, 0.7);
+  axisZ.material.opacity = zOpacity * 0.7;
+  axisZneg.material.opacity = zOpacity * 0.7;
+  gridHelper.material.opacity = zOpacity * 0.25;
+
+  // dim the regression line as it becomes less "the whole story"
+  lineMat.opacity = THREE.MathUtils.lerp(0.85, 0.35, e);
+
+  // camera subtle dolly for drama
+  camera.position.z = THREE.MathUtils.lerp(12, 14, e);
+  camera.position.y = THREE.MathUtils.lerp(0, 0.8, e);
+  camera.lookAt(0, 0, 0);
+
+  // labels crossfade
+  labelStart.style.opacity = 1 - THREE.MathUtils.smoothstep(progress, 0.32, 0.48);
+  labelMid.style.opacity =
+    THREE.MathUtils.smoothstep(progress, 0.52, 0.62) *
+    (1 - THREE.MathUtils.smoothstep(progress, 0.68, 0.78));
+  labelEnd.style.opacity = THREE.MathUtils.smoothstep(progress, 0.82, 0.96);
+
+  progressFill.style.height = (progress * 100) + '%';
+  scrollHint.textContent = progress < 0.25 ? 'scroll to disperse' : progress < 0.65 ? 'scroll to transform' : 'scroll to explore';
+  scrollHint.style.opacity = progress > 0.94 ? 0 : 0.6;
+  legend.classList.toggle('visible', visualProgress > 0.3);
+  axisXTitle.classList.toggle('visible', graphVisibility > 0.9 && visualProgress < 0.5);
+  axisYTitle.classList.toggle('visible', graphVisibility > 0.9 && visualProgress < 0.5);
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(render);
+}
+
+window.addEventListener('scroll', updateFromScroll, { passive: true });
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+updateFromScroll();
+render();
+</script>
+</body>
+</html>
