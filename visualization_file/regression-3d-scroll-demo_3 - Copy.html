@@ -18,6 +18,7 @@
     cursor: grab;
     opacity: 1;
     pointer-events: none;
+    z-index: 1;
     transition: opacity 0.55s ease;
   }
   #canvas-wrap.dragging { cursor: grabbing; }
@@ -30,7 +31,7 @@
     display: flex;
     align-items: center;
     width: min(276px, calc(100vw - 36px));
-    min-height: 52px;
+    min-height: 44px;
     padding: 0 18px;
     background: rgba(255, 253, 251, 0.78);
     border: 1px solid rgba(255, 255, 255, 0.72);
@@ -48,22 +49,28 @@
   }
   #site-header h1 {
     position: absolute;
-    left: 50%;
-    width: auto;
+    top: 50%;
+    left: 0;
+    width: 100%;
     margin: 0;
-    font: 700 21px/1.2 Arial, sans-serif;
-    text-align: left;
+    padding: 0 48px;
+    font: 700 18px/1.2 Arial, sans-serif;
+    text-align: center;
     white-space: nowrap;
-    transform: translateX(-50%);
+    transform: translateY(-50%);
     transition: left 420ms cubic-bezier(0.65, 0, 0.35, 1), transform 420ms cubic-bezier(0.65, 0, 0.35, 1);
   }
   #site-header:hover h1, #site-header:focus-within h1, #site-header.menu-open h1 {
     left: 54px;
-    transform: translateX(0);
+    width: auto;
+    padding: 0;
+    text-align: left;
+    transform: translateY(-50%);
   }
   #site-header strong { color: #121214; }
   #site-header nav {
     position: absolute;
+    top: 50%;
     right: 18px;
     display: flex;
     align-items: center;
@@ -73,20 +80,20 @@
     padding: 0;
     opacity: 0;
     pointer-events: none;
-    transform: translateX(18px);
+    transform: translate(18px, -50%);
     transition: opacity 180ms ease 100ms, transform 420ms cubic-bezier(0.65, 0, 0.35, 1);
   }
   #site-header:hover nav, #site-header:focus-within nav, #site-header.menu-open nav {
     opacity: 1;
     pointer-events: auto;
-    transform: translateX(0);
+    transform: translate(0, -50%);
   }
   #site-header a { color: inherit; text-decoration: none; }
   .headernav {
     margin: 0;
-    padding: 9px 10px;
+    padding: 7px 10px;
     color: #161616;
-    font: 400 18px/1.1 Arial, sans-serif;
+    font: 400 16px/1.1 Arial, sans-serif;
     cursor: pointer;
   }
   .headernav:hover {
@@ -98,6 +105,7 @@
   #header-menu {
     position: absolute;
     left: 20px;
+    top: 50%;
     z-index: 1;
     display: block;
     width: 24px;
@@ -106,21 +114,36 @@
     border: 0;
     background: transparent;
     cursor: pointer;
+    transform: translateY(-50%);
   }
   #header-menu::before, #header-menu::after, #header-menu span {
-    display: block;
+    position: absolute;
+    left: 2px;
+    top: 50%;
     width: 20px;
     height: 2px;
-    margin: 4px 0;
+    margin: 0;
     background: #141414;
     content: '';
+    transition: transform 260ms cubic-bezier(0.65, 0, 0.35, 1), opacity 180ms ease;
   }
+  #header-menu::before { transform: translateY(-7px); }
+  #header-menu::after { transform: translateY(7px); }
+  #site-header:hover #header-menu::before,
+  #site-header:focus-within #header-menu::before,
+  #site-header.menu-open #header-menu::before { transform: rotate(45deg); }
+  #site-header:hover #header-menu::after,
+  #site-header:focus-within #header-menu::after,
+  #site-header.menu-open #header-menu::after { transform: rotate(-45deg); }
+  #site-header:hover #header-menu span,
+  #site-header:focus-within #header-menu span,
+  #site-header.menu-open #header-menu span { opacity: 0; transform: scaleX(0.45); }
   @media (max-width: 800px) {
     #site-header {
       padding: 0 22px;
       overflow: visible;
     }
-    #site-header h1 { font-size: 23px; }
+    #site-header h1 { font-size: 18px; }
     #site-header nav {
       position: absolute;
       top: calc(100% + 10px);
@@ -135,7 +158,7 @@
     }
     #site-header:hover nav, #site-header:focus-within nav { display: none; opacity: 0; pointer-events: none; }
     #site-header.menu-open nav { display: grid; opacity: 1; pointer-events: auto; transform: translateX(0); }
-    .headernav { padding: 12px; font-size: 17px; }
+    .headernav { padding: 12px; font-size: 16px; }
   }
   #oneko {
     z-index: 60;
@@ -149,7 +172,7 @@
     right: 28px;
     width: 40px;
     height: 40px;
-    display: grid;
+    display: none;
     place-items: center;
     color: #4ee0c8;
     background: rgba(10, 10, 12, 0.76);
@@ -179,8 +202,12 @@
 
   #reset-view {
     position: fixed;
-    right: 32px;
-    bottom: 40px;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     background: transparent;
     border: 1px solid rgba(232,236,239,0.25);
     color: rgba(232,236,239,0.6);
@@ -199,6 +226,165 @@
     color: #4ee0c8;
     border-color: rgba(78,224,200,0.5);
   }
+  #ai-assistant {
+    position: fixed;
+    right: 32px;
+    bottom: 28px;
+    width: 92px;
+    height: 92px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    color: #4ee0c8;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    cursor: pointer;
+    z-index: 25;
+    backdrop-filter: blur(10px);
+    transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  }
+  #ai-assistant:hover, #ai-assistant:focus-visible {
+    background: transparent;
+    border-color: transparent;
+    outline: none;
+    transform: translateY(-4px) scale(1.18);
+  }
+  #assistant-bubble {
+    position: fixed;
+    right: 30px;
+    bottom: 106px;
+    z-index: 24;
+    width: min(210px, 46vw);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(16px) scale(0.9);
+    transform-origin: bottom right;
+    transition: opacity 180ms ease, transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  #ai-assistant:hover + #assistant-bubble,
+  #ai-assistant:focus-visible + #assistant-bubble,
+  #assistant-bubble:hover {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+  }
+  #assistant-bubble img {
+    display: block;
+    width: 100%;
+    height: auto;
+    animation: assistant-bubble-float 3.6s ease-in-out infinite;
+  }
+  #assistant-bubble-text {
+    position: absolute;
+    top: 13%;
+    left: 11%;
+    width: 74%;
+    height: 57%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #14141f;
+    font: 700 13px/1.55 Arial, sans-serif;
+    text-align: center;
+    white-space: pre-wrap;
+    letter-spacing: 0.4px;
+  }
+  #assistant-bubble-text::after {
+    width: 5px;
+    height: 1em;
+    margin-left: 3px;
+    background: #14141f;
+    content: '';
+    animation: assistant-cursor 0.8s steps(2) infinite;
+  }
+  @keyframes assistant-bubble-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-7px); }
+  }
+  @keyframes assistant-cursor { 50%, 100% { opacity: 0; } }
+  #ai-assistant .macintosh-loop {
+    position: relative;
+    display: block;
+    width: 72px;
+    height: 72px;
+  }
+  #ai-assistant .macintosh-loop img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 0;
+    animation: macintosh-frame 2.4s steps(1, end) infinite;
+  }
+  #ai-assistant .macintosh-loop img:nth-child(1) { animation-delay: 0s; }
+  #ai-assistant .macintosh-loop img:nth-child(2) { animation-delay: -0.8s; }
+  #ai-assistant .macintosh-loop img:nth-child(3) { animation-delay: -1.6s; }
+  #ai-assistant .macintosh-hover-frame { opacity: 0; animation: none !important; }
+  #ai-assistant:hover .macintosh-loop img:not(.macintosh-hover-frame),
+  #ai-assistant:focus-visible .macintosh-loop img:not(.macintosh-hover-frame) {
+    opacity: 0 !important;
+    animation-play-state: paused;
+  }
+  #ai-assistant:hover .macintosh-hover-frame,
+  #ai-assistant:focus-visible .macintosh-hover-frame { opacity: 1; }
+  @keyframes macintosh-frame {
+    0%, 33.32% { opacity: 1; }
+    33.33%, 100% { opacity: 0; }
+  }
+  #terminal-sessions {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    pointer-events: none;
+  }
+  .terminal-session {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: transparent;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+  }
+  .terminal-session.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .terminal-session iframe {
+    width: min(780px, 92vw);
+    height: min(560px, 78vh);
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.55);
+    transform: translateY(18px) scale(0.96);
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .terminal-session.is-open iframe { transform: translateY(0) scale(1); }
+  .terminal-session.is-stacked {
+    inset: auto;
+    right: calc(132px + (var(--stack-index) * 244px));
+    bottom: 30px;
+    display: block;
+    padding: 0;
+    width: 276px;
+    height: 186px;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .terminal-session.is-stacked iframe {
+    width: 276px;
+    height: 186px;
+    border-radius: 9px;
+    transform: none;
+    box-shadow: 0 14px 32px rgba(0,0,0,0.44);
+  }
 
   .label {
     position: fixed;
@@ -208,6 +394,7 @@
     color: #e8ecef;
     pointer-events: none;
     transition: opacity 0.4s ease;
+    z-index: 2;
   }
   .label .eyebrow {
     font-size: 11px;
@@ -266,6 +453,8 @@
     text-transform: uppercase;
     transition: opacity 0.4s ease;
   }
+
+  #progress-track, #scroll-hint, #legend, .axis-title { z-index: 2; }
 
   #legend {
     position: fixed;
@@ -444,9 +633,10 @@
   <h1>Muhammed Anas</h1>
   <nav aria-label="Portfolio links">
     <a id="skills-link" href="#skills"><p class="headernav">Skills.</p></a>
-    <a id="work-link" href="#projects"><p class="headernav">Work</p></a>
-    <a href="https://www.linkedin.com/in/muhammed-anas-475807259/" target="_blank" rel="noopener noreferrer"><p class="headernav">LinkedIn</p></a>
-    <a href="https://www.github.com/Anas0069" target="_blank" rel="noopener noreferrer"><p class="headernav">GitHub</p></a>
+    <a id="work-link" href="#projects"><p class="headernav">Work.</p></a>
+    <a href="https://www.linkedin.com/in/muhammed-anas-475807259/" target="_blank" rel="noopener noreferrer"><p class="headernav">LinkedIn.</p></a>
+    <a href="https://www.github.com/Anas0069" target="_blank" rel="noopener noreferrer"><p class="headernav">GitHub.</p></a>
+    <a href="https://x.com/anas__ic" target="_blank" rel="noopener noreferrer"><p class="headernav">X.</p></a>
   </nav>
 </header>
 
@@ -489,6 +679,18 @@
 </div>
 <video id="hand-video" autoplay playsinline muted></video>
 <button id="reset-view">Reset view</button>
+<button id="ai-assistant" type="button" aria-label="Open AI assistant" title="Ask the AI assistant">
+  <span class="macintosh-loop" aria-hidden="true">
+    <img src="../macintosh_pics/WhatsApp_Image_2026-08-31_at_8.43.31_AM-removebg-preview.png" alt="">
+    <img src="../macintosh_pics/WhatsApp_Image_2026-08-31_at_8.43.56_AM-removebg-preview.png" alt="">
+    <img src="../macintosh_pics/WhatsApp_Image_2026-08-31_at_8.46.43_AM-removebg-preview.png" alt="">
+    <img class="macintosh-hover-frame" src="../macintosh_pics/WhatsApp_Image_2026-08-31_at_8.43.20_AM-removebg-preview.png" alt="">
+  </span>
+</button>
+<div id="assistant-bubble" aria-live="polite">
+  <img src="../macintosh_pics/Screenshot_2026-08-31_090855-removebg-preview.png" alt="" aria-hidden="true">
+</div>
+<div id="terminal-sessions" aria-live="polite"></div>
 <aside id="cluster-panel" aria-hidden="true" aria-label="Portfolio section details">
   <button id="close-cluster-panel" type="button" aria-label="Close section panel">×</button>
   <div id="cluster-panel-title"></div>
@@ -1063,14 +1265,73 @@ const scrollHint = document.getElementById('scroll-hint');
 const legend = document.getElementById('legend');
 const axisXTitle = document.getElementById('axis-x-title');
 const axisYTitle = document.getElementById('axis-y-title');
+const aiAssistant = document.getElementById('ai-assistant');
+const terminalSessions = document.getElementById('terminal-sessions');
+const terminalSessionMap = new Map();
+let terminalSessionCount = 0;
+
+function refreshTerminalStack() {
+  [...terminalSessionMap.values()]
+    .filter(session => session.shell.classList.contains('is-stacked'))
+    .forEach((session, index) => session.shell.style.setProperty('--stack-index', index));
+}
+
+function stackTerminal(session) {
+  session.shell.classList.remove('is-open');
+  session.shell.classList.add('is-stacked');
+  session.shell.setAttribute('aria-hidden', 'false');
+  refreshTerminalStack();
+}
+
+function openTerminal(session) {
+  [...terminalSessionMap.values()].forEach(other => {
+    if (other !== session && other.shell.classList.contains('is-open')) stackTerminal(other);
+  });
+  session.shell.classList.remove('is-stacked');
+  session.shell.classList.add('is-open');
+  session.shell.setAttribute('aria-hidden', 'false');
+  refreshTerminalStack();
+}
+
+function killTerminalSession(session) {
+  session.shell.remove();
+  terminalSessionMap.delete(session.id);
+  refreshTerminalStack();
+}
+
+function startTerminalSession() {
+  const id = `terminal-${++terminalSessionCount}`;
+  const shell = document.createElement('div');
+  shell.className = 'terminal-session';
+  shell.setAttribute('aria-hidden', 'true');
+  const frame = document.createElement('iframe');
+  frame.src = '../macintosh_pics/mac_terminal_qa.html';
+  frame.title = `Ask Me Anything terminal session ${terminalSessionCount}`;
+  shell.appendChild(frame);
+  terminalSessions.appendChild(shell);
+  const session = { id, shell, frame };
+  terminalSessionMap.set(id, session);
+  openTerminal(session);
+}
+
+aiAssistant.addEventListener('click', startTerminalSession);
+window.addEventListener('message', (event) => {
+  if (event.data?.type !== 'anas-terminal-window-action') return;
+  const session = [...terminalSessionMap.values()].find(item => item.frame.contentWindow === event.source);
+  if (!session) return;
+  if (event.data.action === 'close') killTerminalSession(session);
+  if (event.data.action === 'minimize') stackTerminal(session);
+  if (event.data.action === 'restore') openTerminal(session);
+});
 
 const GREETINGS = [
   { text: "Hi, I'm Muhammed Anas", lang: 'en', dir: 'ltr' },
   { text: 'مرحبًا، أنا محمد أنس', lang: 'ar', dir: 'rtl' },
   { text: 'नमस्ते, मैं मुहम्मद अनस हूँ', lang: 'hi', dir: 'ltr' },
-  { text: 'ನಮಸ್ಕಾರ, ನಾನು ಮುಹಮ್ಮದ್ ಅನಸ್', lang: 'kn', dir: 'ltr' },
+  { text: 'నమస్తే, నేను ముహమ్మద్ అనాస్‌ని', lang: 'te', dir: 'ltr' },
   { text: 'ഹായ്, ഞാൻ മുഹമ്മദ് അനസ്', lang: 'ml', dir: 'ltr' },
 ];
+
 let greetingIndex = 0;
 
 setInterval(() => {
